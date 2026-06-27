@@ -297,20 +297,44 @@ export async function migrateToFirestoreIfNeeded(uid){
   const snap = await fbStore.collection('users').doc(uid).get();
   if(snap.exists && snap.data()?._migrated) return; // already done
 
-  // Check RTDB for legacy data
+  // Check RTDB for legacy data (habittrack-users/uid path)
   const rtdbSnap = await fbDB.ref('habittrack-users/' + uid).once('value');
   const rtdbData = rtdbSnap.val();
+
   if(rtdbData){
-    // Migrate from RTDB
+    // Migrate from RTDB new-style path
     const { applyAllData } = await import('./storage.js');
     applyAllData(rtdbData);
   } else {
-    // Brand new account — seed with generic starter content
-    const { GENERIC_STARTER_ROUTINES: GR, GENERIC_STARTER_TRACKERS: GT } = await import('./constants.js');
-    state.ROUTINES.length = 0;
-    GR.forEach(r => state.ROUTINES.push(r));
-    state.LOG_TRACKERS.length = 0;
-    GT.forEach(t => state.LOG_TRACKERS.push(t));
+    // Check localStorage — user may have been using the old single-file app
+    // which saved data to the same ht3- keys we use now.
+    const localRoutines  = localStorage.getItem('ht3-routines');
+    const localTrackers  = localStorage.getItem('ht3-trackers');
+    const localHabitLog  = localStorage.getItem('ht3-habitlog');
+
+    if(localRoutines || localHabitLog){
+      // Found existing local data — use it instead of generic starters
+      console.log('[Migration] Found existing localStorage data — using it');
+      try{
+        if(localRoutines){
+          const parsed = JSON.parse(localRoutines);
+          state.ROUTINES.length = 0;
+          parsed.forEach(r => state.ROUTINES.push(r));
+        }
+        if(localTrackers){
+          const parsed = JSON.parse(localTrackers);
+          state.LOG_TRACKERS.length = 0;
+          parsed.forEach(t => state.LOG_TRACKERS.push(t));
+        }
+      }catch(e){ console.warn('[Migration] Failed to parse local data:', e); }
+    } else {
+      // Truly brand new account — seed with generic starter content
+      const { GENERIC_STARTER_ROUTINES: GR, GENERIC_STARTER_TRACKERS: GT } = await import('./constants.js');
+      state.ROUTINES.length = 0;
+      GR.forEach(r => state.ROUTINES.push(r));
+      state.LOG_TRACKERS.length = 0;
+      GT.forEach(t => state.LOG_TRACKERS.push(t));
+    }
   }
 
   const ops = [];
