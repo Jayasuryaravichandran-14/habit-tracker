@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#fff4e0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="HabitTrack">
+<link rel="manifest" href="./manifest.json">
+<title>HabitTrack</title>
+
+<!--
+  ============================================================
+  HabitTrack — Modularized v6.0
+  ============================================================
+  This file contains ONLY:
+    1. The CSS (visual styles — unchanged from v7)
+    2. The HTML shell / templates
+    3. A single <script type="module"> that boots main.js
+
+  All JavaScript logic lives in js/ modules:
+    js/main.js         — app entry point
+    js/firebase.js     — Firebase init
+    js/state.js        — shared mutable state
+    js/constants.js    — static data (themes, quotes, starter content)
+    js/helpers.js      — pure utility functions
+    js/storage.js      — localStorage read/write
+    js/broadcast.js    — BroadcastChannel multi-tab sync
+    js/sync.js         — Firestore push/pull/listeners
+    js/auth.js         — Firebase Authentication
+    js/habits.js       — habit CRUD operations
+    js/renders/home.js       — home page render
+    js/renders/routines.js   — routines page render
+    js/renders/log.js        — daily log page render
+    js/renders/analytics.js  — analytics page render
+    js/renders/settings.js   — settings page render
+    js/ui/snackbar.js        — snackbar notifications
+    js/ui/theme.js           — theme application
+    js/ui/nav.js             — bottom navigation
+    js/ui/modals.js          — all modal dialogs
+    js/ui/gestures.js        — swipe + pull-to-refresh
+    js/ui/skeleton.js        — loading skeleton
+    js/ui/bubbles.js         — background animation
+    js/ui/a11y.js            — accessibility
+    js/ui/badges.js          — nav badges
+    js/ui/backup-reminder.js — backup nudge
+    js/sw-register.js        — service worker registration
+
+  Why this split?
+    - Each module is independently testable
+    - BroadcastChannel, Firestore listeners, auth all imported
+      in the right order from main.js
+    - Future features (reminders, AI insights, team habits)
+      each get their own module with zero surgery on this file
+  ============================================================
+-->
+
+<!-- Firebase SDK (compat — must load before main.js) -->
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+<!-- Chart.js for analytics (loaded on demand) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js" defer></script>
+
+<link rel="stylesheet" href="./css/app.css">
+</head>
+
+<body>
+
+<!-- ===== AUTH GATE ===== -->
+<div id="auth-gate" style="position:fixed;inset:0;z-index:9999;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:24px;overflow-y:auto">
+  <div id="auth-gate-inner" class="auth-box">
+    <div class="auth-logo">🔥</div>
+    <div class="auth-title">HabitTrack</div>
+    <div class="auth-subtitle">Build better habits, one day at a time.</div>
+    <div id="auth-error" style="display:none;color:var(--red);margin-bottom:12px;font-size:14px;text-align:center;padding:8px;background:#fee2e2;border-radius:8px"></div>
+    <div id="auth-content">
+      <!-- Auth content rendered by auth.js -->
+      <button class="auth-btn" onclick="import('./js/auth.js').then(m=>m.authAnonymousSignIn())">🔑 Continue as Guest</button>
+      <div class="auth-divider">OR</div>
+      <button class="auth-btn" style="background:#fff;color:#757575;border-color:#ddd" onclick="import('./js/auth.js').then(m=>m.authGoogleSignIn())">
+        <svg width="18" height="18" viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/><path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/><path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/><path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/></svg>
+        Sign in with Google
+      </button>
+      <div style="margin-top:16px">
+        <label class="form-label" style="font-size:12px">Email</label>
+        <input class="form-input" id="auth-email" type="email" placeholder="you@example.com" style="margin-bottom:8px">
+        <label class="form-label" style="font-size:12px">Password</label>
+        <input class="form-input" id="auth-password" type="password" placeholder="••••••" style="margin-bottom:8px">
+        <button class="auth-btn auth-btn-primary" id="auth-submit-btn" onclick="import('./js/auth.js').then(m=>m.authEmailSubmit())">Sign In</button>
+        <div class="auth-forgot" onclick="import('./js/auth.js').then(m=>m.authForgotPassword())">Forgot password?</div>
+        <div class="auth-toggle">
+          <span id="auth-toggle-text">Don't have an account?</span>
+          <a onclick="import('./js/auth.js').then(m=>m.authToggleMode())" id="auth-toggle-link">Sign Up</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== BACKGROUND BUBBLES ===== -->
+<div id="bg-bubbles" aria-hidden="true"></div>
+
+<!-- ===== MAIN APP SHELL ===== -->
+<div class="main" id="main">
+
+  <!-- HOME PAGE -->
+  <section id="page-home" class="page active" aria-label="Today">
+    <div id="home-header"></div>
+    <p id="home-quote" class="quote"></p>
+    <div id="dash-prog-bars"></div>
+    <div id="routine-list"></div>
+    <div id="home-wod"></div>
+  </section>
+
+  <!-- ROUTINES PAGE -->
+  <section id="page-routines" class="page" aria-label="Routines">
+    <div class="home-date-nav" style="margin-bottom:8px">
+      <button class="date-nav-btn" onclick="import('./js/ui/nav.js').then(m=>m.shiftDate('routines',-1))">‹</button>
+      <span id="routines-date-label" class="home-date-label">Today</span>
+      <button class="date-nav-btn" id="routines-nav-fwd" onclick="import('./js/ui/nav.js').then(m=>m.shiftDate('routines',1))" disabled>›</button>
+    </div>
+    <div id="routines-tabs" class="tab-bar"></div>
+    <div id="routines-content"></div>
+  </section>
+
+  <!-- DAILY LOG PAGE -->
+  <section id="page-log" class="page" aria-label="Daily Log">
+    <div class="home-date-nav" style="margin-bottom:8px">
+      <button class="date-nav-btn" onclick="import('./js/ui/nav.js').then(m=>m.shiftDate('log',-1))">‹</button>
+      <span id="log-date-label" class="home-date-label">Today</span>
+      <button class="date-nav-btn" id="log-nav-fwd" onclick="import('./js/ui/nav.js').then(m=>m.shiftDate('log',1))" disabled>›</button>
+    </div>
+    <div style="text-align:center;margin-bottom:10px">
+      <span id="log-date-sub" style="font-size:12px;color:var(--text2)"></span>
+    </div>
+    <div style="text-align:center;margin-bottom:14px">
+      <span class="emoji-stamp" data-stamp="😊" onclick="import('./js/renders/log.js').then(m=>m.setEmojiStamp('😊',this))">😊</span>
+      <span class="emoji-stamp" data-stamp="😐" onclick="import('./js/renders/log.js').then(m=>m.setEmojiStamp('😐',this))">😐</span>
+      <span class="emoji-stamp" data-stamp="😔" onclick="import('./js/renders/log.js').then(m=>m.setEmojiStamp('😔',this))">😔</span>
+      <span class="emoji-stamp" data-stamp="🤩" onclick="import('./js/renders/log.js').then(m=>m.setEmojiStamp('🤩',this))">🤩</span>
+      <span class="emoji-stamp" data-stamp="😤" onclick="import('./js/renders/log.js').then(m=>m.setEmojiStamp('😤',this))">😤</span>
+    </div>
+    <div id="log-content">
+      <div id="log-trackers"></div>
+      <div style="text-align:center;margin-top:10px">
+        <span id="log-save-status" style="font-size:11px;color:var(--text3)"></span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ANALYTICS PAGE -->
+  <section id="page-analytics" class="page" aria-label="Analytics">
+    <div id="analytics-content"></div>
+  </section>
+
+  <!-- SETTINGS PAGE -->
+  <section id="page-settings" class="page" aria-label="Settings">
+    <div id="account-section"></div>
+    <div id="profile-form"></div>
+    <div class="settings-card">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:10px">Theme</h3>
+      <div id="theme-picker-container"></div>
+    </div>
+    <div class="settings-card">
+      <h3 style="font-size:14px;font-weight:700;margin-bottom:10px">Accent Color</h3>
+      <div id="accent-picker-container"></div>
+    </div>
+    <div id="workout-settings"></div>
+    <div id="tracker-settings"></div>
+    <div id="data-management"></div>
+    <div style="text-align:center;margin-top:24px">
+      <span id="sync-status" class="sync-status"></span>
+    </div>
+    <div style="text-align:center;margin-top:16px;margin-bottom:40px">
+      <button class="btn btn-ghost btn-sm" id="sound-toggle-btn" onclick="import('./js/state.js').then(m=>{m.setSoundOn(!m.soundOn);this.textContent=m.soundOn?'🔊 Sound On':'🔇 Sound Off'})">🔊 Sound On</button>
+    </div>
+  </section>
+
+</div>
+
+<!-- BOTTOM NAV -->
+<nav class="bottom-nav" id="bottom-nav" aria-label="Main navigation">
+  <!-- Nav items rendered by ui/nav.js -->
+</nav>
+
+<!-- FAB MENU -->
+<div id="fab-menu" class="fab-menu" style="display:none"></div>
+
+<!-- SNACKBAR -->
+<div id="snackbar" class="snackbar" role="status" aria-live="polite">
+  <span id="snackbar-msg"></span>
+  <button id="snackbar-undo-btn" class="snackbar-undo" style="display:none">Undo</button>
+</div>
+
+<!-- MODAL CONTAINER -->
+<div id="modal-overlay" style="display:none;position:fixed;inset:0;z-index:8000;background:rgba(0,0,0,.5)">
+  <div id="modal-box" style="position:relative;margin:auto;top:10vh;max-width:480px;width:90%;max-height:80vh;overflow-y:auto"></div>
+</div>
+
+<!-- CONTEXT MENU -->
+<div id="ctx-menu" style="display:none;position:fixed;z-index:9000"></div>
+
+<!-- DATEPICKER -->
+<div id="datepicker-overlay" style="display:none;position:fixed;inset:0;z-index:8500;background:rgba(0,0,0,.4)">
+  <div id="datepicker-box" style="margin:auto;top:15vh;position:relative;max-width:360px;width:90%"></div>
+</div>
+
+<!-- ============================================================
+     ENTRY POINT — loads the module graph
+     All app logic flows from main.js.
+     type="module" gives us:
+       • ES module imports/exports
+       • Deferred execution (runs after HTML is parsed)
+       • Strict mode by default
+       • No global namespace pollution
+     ============================================================ -->
+<script type="module" src="./js/main.js"></script>
+
+</body>
+</html>
