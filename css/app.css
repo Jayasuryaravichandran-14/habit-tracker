@@ -233,7 +233,7 @@ select.form-input{cursor:pointer;appearance:none;-webkit-appearance:none;backgro
 .ctx-item:hover{background:var(--surface2)}
 
 /* ---- Snackbar ---- */
-.snackbar{position:fixed;bottom:calc(var(--nav-h) + 12px);left:50%;transform:translateX(-50%) translateY(100px);background:var(--text);color:var(--bg);padding:12px 20px;border-radius:var(--r3);font-size:14px;font-weight:600;z-index:10000;opacity:0;transition:transform .3s ease,opacity .3s ease;white-space:nowrap;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.2)}
+.snackbar{position:fixed;bottom:calc(var(--nav-h) + 12px);left:50%;transform:translateX(-50%) translateY(100px);background:var(--text);color:var(--bg);padding:12px 20px;border-radius:var(--r3);font-size:14px;font-weight:600;z-index:10000;opacity:0;transition:transform .3s ease,opacity .3s ease;max-width:320px;width:auto;text-align:center;pointer-events:none;box-shadow:0 8px 24px rgba(0,0,0,.2)}
 .snackbar.show{transform:translateX(-50%) translateY(0);opacity:1;pointer-events:auto}
 .snackbar-undo{background:transparent;border:1px solid var(--bg);color:var(--bg);padding:4px 10px;border-radius:6px;font-size:12px;font-weight:700;cursor:pointer;margin-left:10px;font-family:inherit}
 .snackbar-undo:hover{background:rgba(255,255,255,.15)}
