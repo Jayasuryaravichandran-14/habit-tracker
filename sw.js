@@ -7,7 +7,7 @@
 
 // ⚠️ BUMP THIS DATE every time you push an update to GitHub.
 // This is what forces users to get fresh code after a deploy.
-const CACHE_NAME = 'habittrack-v6-20260627';
+const CACHE_NAME = 'habittrack-v6-20260627b';
 const STATIC_ASSETS = [
   './',
   './index.html',
